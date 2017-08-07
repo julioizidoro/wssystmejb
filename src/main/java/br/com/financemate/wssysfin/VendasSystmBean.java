@@ -26,6 +26,7 @@ public class VendasSystmBean {
     private int idVenda;
     private int idUsuario;
     private int idUnidade;
+    private String nomeUnidade;
     
 
     public int getIdProduto() {
@@ -122,6 +123,14 @@ public class VendasSystmBean {
 
     public void setIdUnidade(int idUnidade) {
         this.idUnidade = idUnidade;
+    }
+
+    public String getNomeUnidade() {
+        return nomeUnidade;
+    }
+
+    public void setNomeUnidade(String nomeUnidade) {
+        this.nomeUnidade = nomeUnidade;
     }
     
     

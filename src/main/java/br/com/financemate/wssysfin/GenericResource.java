@@ -10,9 +10,8 @@ import br.com.financemate.wssysfin.Dao.VendasComissaoDao;
 import br.com.financemate.wssysfin.Dao.VendasDao;
 import br.com.financemate.wssysfin.model.Vendas;
 import br.com.financemate.wssysfin.model.Vendascomissao;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import javax.ejb.EJB;
 import javax.ws.rs.core.Context;
@@ -22,6 +21,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PUT;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 /**
@@ -40,14 +40,16 @@ public class GenericResource {
      */
     public GenericResource() {
     }
-    
+
     @EJB
     private VendaDao vendaDao;
     @EJB
     private VendasComissaoDao vendasComissaoDao;
 
     /**
-     * Retrieves representation of an instance of br.com.financemate.wssysfin.GenericResource
+     * Retrieves representation of an instance of
+     * br.com.financemate.wssysfin.GenericResource
+     *
      * @return an instance of java.lang.String
      */
     @GET
@@ -55,14 +57,13 @@ public class GenericResource {
     @Produces(MediaType.APPLICATION_JSON)
     public VendasSystmBean getVenda() {
         VendasSystmBean venda = new VendasSystmBean();
-        Vendas vendas = vendaDao.find("Select v from Vendas v Where v.idvendas=" + 4629);
+        Vendas vendas = vendaDao.find("select v from Vendas v where v.idvendas=" + 4629);
         venda = parseVendas(vendas);
         venda.setFornecedor("Travelmate Matriz");
         return venda;
-    } 
-    
-    
-    private VendasSystmBean parseVendas(Vendas vendas){
+    }
+
+    private VendasSystmBean parseVendas(Vendas vendas) {
         VendasSystmBean vendasSystmBean = new VendasSystmBean();
         vendasSystmBean.setDataVenda(vendas.getDataVenda());
         vendasSystmBean.setIdUnidade(vendas.getUnidadenegocio().getIdunidadeNegocio());
@@ -72,36 +73,44 @@ public class GenericResource {
         vendasSystmBean.setIdCliente(vendas.getCliente().getIdcliente());
         vendasSystmBean.setConsultor(vendas.getUsuario().getNome());
         vendasSystmBean.setNomeCliente(vendas.getCliente().getNome());
+        vendasSystmBean.setNomeUnidade(vendas.getUnidadenegocio().getNomeFantasia());
         vendasSystmBean = parseVendasComissao(vendas, vendasSystmBean);
         return vendasSystmBean;
     }
-    
-    private VendasSystmBean parseVendasComissao(Vendas vendas, VendasSystmBean vendasSystmBean){
+
+    private VendasSystmBean parseVendasComissao(Vendas vendas, VendasSystmBean vendasSystmBean) {
         Vendascomissao vendascomissao = new Vendascomissao();
-        List<Vendascomissao> listavendascomissao = vendasComissaoDao.list("Select vc From Vendascomissao vc Where vc.vendas.idvendas=" + vendas.getIdvendas());
+        List<Vendascomissao> listavendascomissao = vendasComissaoDao.list("select vc from Vendascomissao vc where vc.vendas.idvendas=" + vendas.getIdvendas());
         for (int i = 0; i < listavendascomissao.size(); i++) {
             vendascomissao = listavendascomissao.get(i);
         }
         if (vendascomissao.getIdvendascomissao() == null) {
-             vendasSystmBean.setLiquidoFranquia(0.0f);
-             vendasSystmBean.setValorBruto(0.0f);
-        }else{
+            vendasSystmBean.setLiquidoFranquia(0.0f);
+            vendasSystmBean.setValorBruto(0.0f);
+        } else {
             vendasSystmBean.setLiquidoFranquia(vendascomissao.getLiquidofranquia());
             vendasSystmBean.setValorBruto(vendascomissao.getValorbruto());
         }
         return vendasSystmBean;
     }
-    
-     
-    
-     @GET
+
+    @GET
     @Path("listaVenda")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<VendasSystmBean> getListaVenda() {
+    public List<VendasSystmBean> getListaVenda(@QueryParam("unidade") Integer idUnidade, @QueryParam("dataInicial") String dataInicial,
+                            @QueryParam("dataFinal") String dataFinal) {
         List<Vendas> listaVendas;
         VendasSystmBean vendasSystmBean;
         List<VendasSystmBean> listaVendasSystmBean = new ArrayList<VendasSystmBean>();
-        listaVendas = vendaDao.list("Select v From Vendas v Where v.vendaimportada=0");
+        String sql = "select v from Vendas v where v.idvendas>0 ";
+        if (idUnidade > 0) {
+            sql = sql + " and v.unidadenegocio.idunidadeNegocio=" + idUnidade;
+        }
+        
+        if ((dataInicial != null && dataFinal != null) && (!dataInicial.equalsIgnoreCase("null") && !dataFinal.equalsIgnoreCase("null"))) {
+            sql = sql + " and v.dataVenda>='" + dataInicial + "' and v.dataVenda<='" + dataFinal + "'";
+        }
+        listaVendas = vendaDao.list(sql);
         for (int i = 0; i < listaVendas.size(); i++) {
             vendasSystmBean = new VendasSystmBean();
             vendasSystmBean = parseVendas(listaVendas.get(i));
@@ -113,9 +122,10 @@ public class GenericResource {
 
     /**
      * PUT method for updating or creating an instance of GenericResource
+     *
      * @param idvenda representation for the resource
      */
-   @PUT
+    @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     public void salvarImportacao(int idvenda) {
         VendasDao vendasDao = new VendasDao();
