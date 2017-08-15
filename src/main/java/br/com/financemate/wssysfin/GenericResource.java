@@ -5,13 +5,16 @@
  */
 package br.com.financemate.wssysfin;
 
+import br.com.financemate.wssysfin.Dao.FormaPagamentoDao;
+import br.com.financemate.wssysfin.Dao.ParcelamentoPagamentoDao;
 import br.com.financemate.wssysfin.Dao.VendaDao;
 import br.com.financemate.wssysfin.Dao.VendasComissaoDao;
 import br.com.financemate.wssysfin.Dao.VendasDao;
+import br.com.financemate.wssysfin.model.Formapagamento;
+import br.com.financemate.wssysfin.model.Parcelamentopagamento;
 import br.com.financemate.wssysfin.model.Vendas;
 import br.com.financemate.wssysfin.model.Vendascomissao;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import javax.ejb.EJB;
 import javax.ws.rs.core.Context;
@@ -45,6 +48,10 @@ public class GenericResource {
     private VendaDao vendaDao;
     @EJB
     private VendasComissaoDao vendasComissaoDao;
+    @EJB
+    private FormaPagamentoDao formaPagamentoDao;
+    @EJB
+    private ParcelamentoPagamentoDao parcelamentoPagamentoDao;
 
     /**
      * Retrieves representation of an instance of
@@ -90,6 +97,33 @@ public class GenericResource {
         } else {
             vendasSystmBean.setLiquidoFranquia(vendascomissao.getLiquidofranquia());
             vendasSystmBean.setValorBruto(vendascomissao.getValorbruto());
+        }
+        vendasSystmBean = parseFormaPagamento(vendas, vendasSystmBean);
+        return vendasSystmBean;
+    }
+    
+    private VendasSystmBean parseFormaPagamento(Vendas vendas, VendasSystmBean vendasSystmBean){
+        List<VendasSystmBean> listaPagamento = new ArrayList<>();
+        List<Formapagamento> listaFormaPagamento = formaPagamentoDao.list("select f from Formapagamento f where f.vendas.idvendas=" + vendas.getIdvendas());
+        if (listaFormaPagamento == null) {
+            listaFormaPagamento = new ArrayList<>();
+        }
+        for (int i = 0; i < listaFormaPagamento.size(); i++) {
+            List<Parcelamentopagamento> listaParcelamento = parcelamentoPagamentoDao.list("select p from Parcelamentopagamento p where p.formapagamento.idformaPagamento="
+                + listaFormaPagamento.get(i).getIdformaPagamento());
+            if (listaParcelamento == null) {
+                listaParcelamento = new ArrayList<>();
+            }
+            for (int j = 0; j < listaParcelamento.size(); j++) {
+                VendasSystmBean formaPagamento = new VendasSystmBean();
+                formaPagamento.setTipoPagamento(listaParcelamento.get(j).getFormaPagamento());
+                formaPagamento.setnParcela(listaParcelamento.get(j).getNumeroParcelas());
+                formaPagamento.setDataPagamento(listaParcelamento.get(j).getDiaVencimento());
+                formaPagamento.setValorParcelamento(listaParcelamento.get(j).getValorParcelamento());
+                formaPagamento.setValorParcela(listaParcelamento.get(j).getValorParcela());
+                listaPagamento.add(formaPagamento);
+            }
+            vendasSystmBean.setLista(listaPagamento);
         }
         return vendasSystmBean;
     }
