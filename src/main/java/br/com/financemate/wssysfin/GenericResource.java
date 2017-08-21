@@ -81,22 +81,21 @@ public class GenericResource {
         vendasSystmBean.setConsultor(vendas.getUsuario().getNome());
         vendasSystmBean.setNomeCliente(vendas.getCliente().getNome());
         vendasSystmBean.setNomeUnidade(vendas.getUnidadenegocio().getNomeFantasia());
+        vendasSystmBean.setValorBruto(vendas.getValor());
         vendasSystmBean = parseVendasComissao(vendas, vendasSystmBean);
         return vendasSystmBean;
     }
 
     private VendasSystmBean parseVendasComissao(Vendas vendas, VendasSystmBean vendasSystmBean) {
         Vendascomissao vendascomissao = new Vendascomissao();
-        List<Vendascomissao> listavendascomissao = vendasComissaoDao.list("select vc from Vendascomissao vc where vc.vendas.idvendas=" + vendas.getIdvendas());
+        List<Vendascomissao> listavendascomissao = vendasComissaoDao.list("select vc from Vendascomissao vc where vc.vendas.situacao<>'CANCELADA' and vc.vendas.idvendas=" + vendas.getIdvendas());
         for (int i = 0; i < listavendascomissao.size(); i++) {
             vendascomissao = listavendascomissao.get(i);
         }
         if (vendascomissao.getIdvendascomissao() == null) {
             vendasSystmBean.setLiquidoFranquia(0.0f);
-            vendasSystmBean.setValorBruto(0.0f);
         } else {
             vendasSystmBean.setLiquidoFranquia(vendascomissao.getLiquidofranquia());
-            vendasSystmBean.setValorBruto(vendascomissao.getValorbruto());
         }
         vendasSystmBean = parseFormaPagamento(vendas, vendasSystmBean);
         return vendasSystmBean;
@@ -104,7 +103,7 @@ public class GenericResource {
     
     private VendasSystmBean parseFormaPagamento(Vendas vendas, VendasSystmBean vendasSystmBean){
         List<VendasSystmBean> listaPagamento = new ArrayList<>();
-        List<Formapagamento> listaFormaPagamento = formaPagamentoDao.list("select f from Formapagamento f where f.vendas.idvendas=" + vendas.getIdvendas());
+        List<Formapagamento> listaFormaPagamento = formaPagamentoDao.list("select f from Formapagamento f where f.vendas.situacao<>'CANCELADA' and f.vendas.idvendas=" + vendas.getIdvendas());
         if (listaFormaPagamento == null) {
             listaFormaPagamento = new ArrayList<>();
         }
@@ -136,7 +135,7 @@ public class GenericResource {
         List<Vendas> listaVendas;
         VendasSystmBean vendasSystmBean;
         List<VendasSystmBean> listaVendasSystmBean = new ArrayList<VendasSystmBean>();
-        String sql = "select v from Vendas v where v.idvendas>0 ";
+        String sql = "select v from Vendas v where v.situacao<>'CANCELADA' ";
         if (idUnidade > 0) {
             sql = sql + " and v.unidadenegocio.idunidadeNegocio=" + idUnidade;
         }
